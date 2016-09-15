@@ -12,6 +12,7 @@ public class SimpleLineData {
 
     private float value;
 
+    //与value性质相同，但优先级比value 高，主要用于显示与value相关的 特殊文字组成
     private String value_text;
 
     public int getIndex() {
