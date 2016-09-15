@@ -12,7 +12,6 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -24,7 +23,7 @@ import java.util.List;
  * Email: jimbray16@gmail.com
  * Description: TODO
  */
-public class SimpleLinePointView extends View {
+public class SimpleLineView extends View {
 
     private Context mContext;
 
@@ -68,7 +67,7 @@ public class SimpleLinePointView extends View {
 
     private String mLifeLongIconText; //linflong 图示文字
     private float mLifelongIconTextSize;
-    private float mLifeLongValue;
+    private float mLifeLongValue = -1;
 
     // 点击点到底部的动画相关变量
     private boolean isAnimatingSelectedLine;
@@ -83,9 +82,9 @@ public class SimpleLinePointView extends View {
     private float mTouchPadding = dp2px(2.5f);
 
     // 是否绘制的控制
-    private boolean mIsDrawBottomText           = false; //是否绘制底部文字
+    private boolean mIsDrawBottomText           = false;  //是否绘制底部文字
     private boolean mIsDrawAverageLine          = true;  //是否绘制平均线
-    private boolean mIsDrawLiflongLine          = true;  //是否绘制 lifelong
+    private boolean mIsDrawLiflongLine          = false;  //是否绘制 lifelong
     private boolean mIsDrawVerticalLine         = true;  //是否绘制背景竖线
     private boolean mIsDrawHorizontalLine       = false; //是否绘制背景横线
     private boolean mIsDrawTopSideLine          = true;  //是否绘制顶部边线
@@ -123,19 +122,19 @@ public class SimpleLinePointView extends View {
     private int mViewBackgroundColor = DEFAULT_VIEW_BACKGROUND_COLOR;
     private int mBottomValueTextColor = DEFAULT_BOTTOM_VALUE_TEXT_COLOR;
 
-    private static final int DEFAULT_MAX_COLUMN = 7;
-    private int mMaxColumn;
+    private static final int DEFAULT_COLUMN_COUNT = 7;
+    private int mColumnCount;
 
-    public SimpleLinePointView(Context context) {
+    public SimpleLineView(Context context) {
         super(context, null);
     }
 
-    public SimpleLinePointView(Context context, AttributeSet attrs) {
+    public SimpleLineView(Context context, AttributeSet attrs) {
         super(context, attrs, 0);
         init(context);
     }
 
-    public SimpleLinePointView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public SimpleLineView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init(context);
     }
@@ -143,7 +142,7 @@ public class SimpleLinePointView extends View {
     private void init(Context context) {
         this.mContext = context;
 
-        mMaxColumn = DEFAULT_MAX_COLUMN;
+        mColumnCount = DEFAULT_COLUMN_COUNT;
 
         mAnimatorLine = new AnimatorSet();
         mViewHeight = dp2px(196);
@@ -247,7 +246,7 @@ public class SimpleLinePointView extends View {
 //        i7.setIndex(6);
 //        i7.setValue(60);
 //        mData.add(i7);
-//
+
 //        mBottomTexts = new ArrayList<>();
 //        mBottomTexts.add("Sun");
 //        mBottomTexts.add("Mon");
@@ -256,20 +255,16 @@ public class SimpleLinePointView extends View {
 //        mBottomTexts.add("Thu");
 //        mBottomTexts.add("Fri");
 //        mBottomTexts.add("Sat");
-
-
+//
+//
 //        mData = new ArrayList<>();
 //        for(int i = 0 ; i < 7; i++) {
 //            SimpleLineData item = new SimpleLineData();
 //            item.setIndex(i);
-////            float mult = (100 + 1);
-////            float value = (float) (Math.random() * mult) + mult / 3;
-////            item.setValue(value);
 //            item.setValue((int)(Math.random()* 99 + 1));
 //
 //            mData.add(item);
 //        }
-
 
     }
 
@@ -357,11 +352,17 @@ public class SimpleLinePointView extends View {
     }
 
     private void drawValueIcon(Canvas canvas) {
-        float lifelong_text_width = mLifeLongLinePaint.measureText(mLifeLongIconText);
+        if(mLifeLongValue < 0) {
+            mIsDrawLiflongLine = false;
+        }
 
-        canvas.drawText(mLifeLongIconText, getWidth() - mHorizontalOffset - lifelong_text_width,
-                mVerticalOffset + mValuePaddingOffset/2 + mLifelongIconTextSize/2 + (mLifeLongLinePaint.descent() + mLifeLongLinePaint.ascent() / 2.0f), mLifeLongLinePaint);//文字居中
-        canvas.drawCircle(getWidth() - mHorizontalOffset - lifelong_text_width - mLifelongIconTextSize*2 - dp2px(2), mVerticalOffset + mValuePaddingOffset/2, mLifelongIconTextSize/3, mLifeLongLinePaint);
+        float lifelong_text_width = mLifeLongLinePaint.measureText(mLifeLongIconText);
+        if(mIsDrawLiflongLine) {
+
+            canvas.drawText(mLifeLongIconText, getWidth() - mHorizontalOffset - lifelong_text_width,
+                    mVerticalOffset + mValuePaddingOffset/2 + mLifelongIconTextSize/2 + (mLifeLongLinePaint.descent() + mLifeLongLinePaint.ascent() / 2.0f), mLifeLongLinePaint);//文字居中
+            canvas.drawCircle(getWidth() - mHorizontalOffset - lifelong_text_width - mLifelongIconTextSize*2 - dp2px(2), mVerticalOffset + mValuePaddingOffset/2, mLifelongIconTextSize/3, mLifeLongLinePaint);
+        }
 
         float average_text_width = mAverageLinePaint.measureText(mAverageIconText);
 
@@ -386,14 +387,14 @@ public class SimpleLinePointView extends View {
         //画背景线
 
 
-        for (int i = 0 ; i < mMaxColumn; i++) {
-            float verticalStartX = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset;
+        for (int i = 0 ; i < mColumnCount; i++) {
+            float verticalStartX = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset;
             if(mIsDrawVerticalLine) {
                 mIsDrawRightSideLine = true; //如果需要画竖线，默认需要画最右边的竖线
-                mIsDrawLeftSideLine = true; //如果需要画竖线，默认需要画最左边的竖线
+                mIsDrawLeftSideLine  = true; //如果需要画竖线，默认需要画最左边的竖线
                 float verticalStartY = mVerticalOffset;
-                float verticalStopX = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset;
-                float verticalStopY = getHeight() - mVerticalOffset - (mIsDrawBottomText ? mBottomTextSize : 0);
+                float verticalStopX  = verticalStartX;
+                float verticalStopY  = getHeight() - mVerticalOffset - (mIsDrawBottomText ? mBottomTextSize : 0);
                 canvas.drawLine(verticalStartX, verticalStartY, verticalStopX, verticalStopY, mBgLinePaint);
             }
 
@@ -401,9 +402,9 @@ public class SimpleLinePointView extends View {
                 mIsDrawTopSideLine = true;
                 mIsDrawBottomSideLine = true;
                 float horizontalStartX = mHorizontalOffset;
-                float horizontalStartY = ((getHeight() - mVerticalOffset*2 - (mIsDrawBottomText ? mBottomTextSize : 0))/(mMaxColumn-1))*i + mVerticalOffset;
-                float horizontalStopX = getWidth() - mHorizontalOffset;
-                float horiontalStopY = ((getHeight() - mVerticalOffset*2 - (mIsDrawBottomText ? mBottomTextSize : 0))/(mMaxColumn-1))*i + mVerticalOffset;
+                float horizontalStartY = ((getHeight() - mVerticalOffset*2 - (mIsDrawBottomText ? mBottomTextSize : 0))/(mColumnCount -1))*i + mVerticalOffset;
+                float horizontalStopX  = getWidth() - mHorizontalOffset;
+                float horiontalStopY   = horizontalStartY;
                 canvas.drawLine(horizontalStartX, horizontalStartY, horizontalStopX, horiontalStopY, mBgLinePaint);
             }
 
@@ -414,7 +415,7 @@ public class SimpleLinePointView extends View {
 //                    float bottom_text_width = mBottomTextPaint.measureText(bottom_text_str);
                     if(i % mBottomTextStepSize == 0) {
                         canvas.drawText(bottom_text_str, verticalStartX, getHeight() - mVerticalOffset, mBottomTextPaint);
-                    } else if(i == mMaxColumn - 1) {
+                    } else if(i == mColumnCount - 1) {
                         if((i - 1) % mBottomTextStepSize != 0) {
                             canvas.drawText(bottom_text_str, verticalStartX, getHeight() - mVerticalOffset, mBottomTextPaint);
                         }
@@ -439,12 +440,6 @@ public class SimpleLinePointView extends View {
             canvas.drawLine(mHorizontalOffset, mVerticalOffset, getWidth() - mHorizontalOffset, mVerticalOffset, mBgLinePaint);//顶部横线
         }
 
-//        //画底部标准线
-//        canvas.drawLine(mHorizontalOffset, getHeight() - mVerticalOffset - mValuePaddingOffset - mBottomTextSize, getWidth() - mHorizontalOffset, getHeight() - mVerticalOffset - mValuePaddingOffset - mBottomTextSize, mTestPaint);
-//        //画顶部标准线
-//        canvas.drawLine(mHorizontalOffset, mValuePaddingOffset, getWidth() - mHorizontalOffset, mValuePaddingOffset, mTestPaint);
-
-
     }
 
     private void drawPoint2Line(Canvas canvas) {
@@ -459,7 +454,7 @@ public class SimpleLinePointView extends View {
             mIsHorizontalValue = false;
         }
 
-        //画连接线
+        //画连接线 不带动画的全部连接线
 //        for (int i = 0 ; i < mData.size(); i++) {
 //            if(i < mData.size() - 1) {
 //                if(mIsHorizontalValue) {
@@ -485,8 +480,8 @@ public class SimpleLinePointView extends View {
             if(k < mDrawingLineIndex) {
                 hadDrawed = true;
                 float line_start_x;
-                if(mMaxColumn > 1) {
-                    line_start_x = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*k + mHorizontalOffset;
+                if(mColumnCount > 1) {
+                    line_start_x = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*k + mHorizontalOffset;
                 } else {
                     line_start_x = mHorizontalOffset;
                 }
@@ -505,8 +500,8 @@ public class SimpleLinePointView extends View {
                         }
                     } else {
                         float line_stop_x;
-                        if(mMaxColumn > 1) {
-                            line_stop_x = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*(mDrawingLineIndex) + mHorizontalOffset;
+                        if(mColumnCount > 1) {
+                            line_stop_x = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*(mDrawingLineIndex) + mHorizontalOffset;
                         } else {
                             line_stop_x = mHorizontalOffset;
                         }
@@ -524,8 +519,8 @@ public class SimpleLinePointView extends View {
                     }
                 } else {
                     float line_stop_x;
-                    if(mMaxColumn > 1) {
-                        line_stop_x = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*(k+1) + mHorizontalOffset;
+                    if(mColumnCount > 1) {
+                        line_stop_x = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*(k+1) + mHorizontalOffset;
                     } else {
                         line_stop_x = mHorizontalOffset;
                     }
@@ -556,7 +551,6 @@ public class SimpleLinePointView extends View {
         float min_value = getMinValue();
         float max_pos_y = getHeight() - mVerticalOffset - mValuePaddingOffset - (mIsDrawBottomText ? mBottomTextSize : 0);
         float min_pos_y = mValuePaddingOffset;
-        //画点
         float average_value = 0;
         for (int i = 0 ; i < mData.size(); i++) {
             if(mData.get(i).getValue() < 0) {
@@ -564,13 +558,14 @@ public class SimpleLinePointView extends View {
             }
             average_value += mData.get(i).getValue();
             if(mIsHorizontalValue) {
+                //之前的圆点是用画的，现在修改为图片了
 //                canvas.drawCircle(((getWidth()- mHorizontalOffset *2)/(mData.size() - 1))*i + mHorizontalOffset,
 //                        min_pos_y + (max_pos_y - min_pos_y)/2, mPointWidth, mNormalPointPaint);
 
 
                 float left, top;
-                if(mMaxColumn > 1) {
-                    left = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset - mBitmapNormalCircle.getWidth()/2;
+                if(mColumnCount > 1) {
+                    left = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset - mBitmapNormalCircle.getWidth()/2;
                 } else {
                     left = mHorizontalOffset - mBitmapNormalCircle.getWidth()/2;
                 }
@@ -588,8 +583,8 @@ public class SimpleLinePointView extends View {
                         if(mDrawingStopSelectedLineY != getHeight() - mVerticalOffset - (mIsDrawBottomText ? mBottomTextSize : 0)) {
                             if(isAnimatingSelectedLine) {
                                 float line_x;
-                                if(mMaxColumn > 1) {
-                                    line_x = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset;
+                                if(mColumnCount > 1) {
+                                    line_x = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset;
                                 } else {
                                     line_x = mHorizontalOffset;
                                 }
@@ -604,8 +599,8 @@ public class SimpleLinePointView extends View {
                             }
                         } else {
                             float line_x;
-                            if(mMaxColumn > 1) {
-                                line_x = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset;
+                            if(mColumnCount > 1) {
+                                line_x = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset;
                             } else {
                                 line_x = mHorizontalOffset;
                             }
@@ -624,8 +619,8 @@ public class SimpleLinePointView extends View {
                         }
                     }
 
-                    if(mMaxColumn > 1) {
-                        left = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset - mBitmapSelectedCircle.getWidth()/2;
+                    if(mColumnCount > 1) {
+                        left = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset - mBitmapSelectedCircle.getWidth()/2;
                     } else {
                         left = mHorizontalOffset - mBitmapSelectedCircle.getWidth()/2;
                     }
@@ -644,8 +639,8 @@ public class SimpleLinePointView extends View {
                         float bottom_value_text_width = mBottomValuePaint.measureText(bottom_value_text);
 
                         RectF rectF_bg = new RectF();
-                        if(mMaxColumn > 1) {
-                            rectF_bg.left = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset - bottom_value_text_width/2;
+                        if(mColumnCount > 1) {
+                            rectF_bg.left = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset - bottom_value_text_width/2;
                         } else {
                             rectF_bg.left = mHorizontalOffset - bottom_value_text_width/2;
                         }
@@ -677,8 +672,8 @@ public class SimpleLinePointView extends View {
 //                        mValuePaddingOffset + ((max_value-mData.get(i).getValue())/(max_value-min_value))*(max_pos_y-min_pos_y), mPointWidth, mNormalPointPaint);
 
                 float left, top;
-                if(mMaxColumn > 1) {
-                    left = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset - mBitmapNormalCircle.getWidth()/2;
+                if(mColumnCount > 1) {
+                    left = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset - mBitmapNormalCircle.getWidth()/2;
                 } else {
                     left = mHorizontalOffset - mBitmapNormalCircle.getWidth()/2;
                 }
@@ -696,8 +691,8 @@ public class SimpleLinePointView extends View {
                         if(mDrawingStopSelectedLineY != getHeight() - mVerticalOffset - (mIsDrawBottomText ? mBottomTextSize : 0)) {
                             if(isAnimatingSelectedLine) {
                                 float line_x;
-                                if(mMaxColumn > 1) {
-                                    line_x = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset;
+                                if(mColumnCount > 1) {
+                                    line_x = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset;
                                 } else {
                                     line_x = mHorizontalOffset;
                                 }
@@ -713,8 +708,8 @@ public class SimpleLinePointView extends View {
                             }
                         } else {
                             float line_x;
-                            if(mMaxColumn > 1) {
-                                line_x = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset;
+                            if(mColumnCount > 1) {
+                                line_x = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset;
                             } else {
                                 line_x = mHorizontalOffset;
                             }
@@ -735,8 +730,8 @@ public class SimpleLinePointView extends View {
                     }
 
 
-                    if(mMaxColumn > 1) {
-                        left = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset - mBitmapSelectedCircle.getWidth()/2;
+                    if(mColumnCount > 1) {
+                        left = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset - mBitmapSelectedCircle.getWidth()/2;
                     } else {
                         left = mHorizontalOffset - mBitmapSelectedCircle.getWidth()/2;
                     }
@@ -755,8 +750,8 @@ public class SimpleLinePointView extends View {
                         float bottom_value_text_width = mBottomValuePaint.measureText(bottom_value_text);
 
                         RectF rectF_bg = new RectF();
-                        if(mMaxColumn > 1) {
-                            rectF_bg.left = ((getWidth()- mHorizontalOffset *2)/(mMaxColumn - 1))*i + mHorizontalOffset - bottom_value_text_width/2;
+                        if(mColumnCount > 1) {
+                            rectF_bg.left = ((getWidth()- mHorizontalOffset *2)/(mColumnCount - 1))*i + mHorizontalOffset - bottom_value_text_width/2;
                         } else {
                             rectF_bg.left = mHorizontalOffset - bottom_value_text_width/2;
                         }
@@ -793,7 +788,7 @@ public class SimpleLinePointView extends View {
             mIsDrawLiflongLine = false;
         }
 
-        if(mIsDrawLiflongLine) {
+        if(mIsDrawLiflongLine) { // lifelong 是另外一种平均值，可以不用（我用在多个simpleLine所有的平均值）
             if(mDrawingStopLifelongLineX != getWidth() - mHorizontalOffset) {
                 if(mIsHorizontalValue) {
                     if(isAnimatingLifelongLine) {
@@ -929,7 +924,7 @@ public class SimpleLinePointView extends View {
     }
 
     private void startSelectedLineAnimation(float startY, final float stopY) {
-        Log.d("simpleLineView", "startAnim --> startY-->" + startY + " | " +  "stopY->" + stopY );
+//        Log.d("simpleLineView", "startAnim --> startY-->" + startY + " | " +  "stopY->" + stopY );
         mDrawingStopSelectedLineY = -1;
         isAnimatingSelectedLine = true;
 
@@ -955,7 +950,7 @@ public class SimpleLinePointView extends View {
     }
 
     private void startLifelongLineAnimation(float startX, final float stopX) {
-        Log.d("simpleLineView", "startAnim --> startX-->" + startX + " | " +  "stopX->" + stopX );
+//        Log.d("simpleLineView", "startAnim --> startX-->" + startX + " | " +  "stopX->" + stopX );
         mDrawingStopLifelongLineX = -1;
         isAnimatingLifelongLine = true;
 
@@ -981,7 +976,7 @@ public class SimpleLinePointView extends View {
     }
 
     private void startAverageLineAnimation(float startX, final float stopX) {
-        Log.d("simpleLineView", "startAnim --> startX-->" + startX + " | " +  "stopX->" + stopX );
+//        Log.d("simpleLineView", "startAnim --> startX-->" + startX + " | " +  "stopX->" + stopX );
         mDrawingStopAverageLineX = -1;
         isAnimatingAverageLine = true;
 
@@ -1007,7 +1002,7 @@ public class SimpleLinePointView extends View {
     }
 
     private void startLineToAnimation(float startX, float startY, final float stopX, final float stopY) {
-        Log.d("simpleLineView", "startAnim --> startX-->" + startX + " | startY->" + startY + " | stopX->" + stopX + " | stopY->" + stopY);
+//        Log.d("simpleLineView", "startAnim --> startX-->" + startX + " | startY->" + startY + " | stopX->" + stopX + " | stopY->" + stopY);
         isAnimatingLine = true;
 
         ValueAnimator xAnimator = ValueAnimator.ofObject(new LineEvaluator(), startX, stopX);
@@ -1041,7 +1036,7 @@ public class SimpleLinePointView extends View {
 
 
         mAnimatorLine.playTogether(xAnimator, yAnimator);
-        mAnimatorLine.setDuration(2500/mMaxColumn);
+        mAnimatorLine.setDuration(2500/ mColumnCount);
         mAnimatorLine.start();
     }
 
@@ -1115,7 +1110,13 @@ public class SimpleLinePointView extends View {
     }
 
     public void setBottomTextList(List<String> bottomTexts) {
-        this.mBottomTexts = bottomTexts;
+        if(bottomTexts != null) {
+            if(bottomTexts.size() == mColumnCount) {
+                //底部文字的个数必须与列数相等 才生效
+                this.mBottomTexts = bottomTexts;
+            }
+        }
+
     }
 
     public void setBottomTextSize(float textSize) {
@@ -1212,42 +1213,51 @@ public class SimpleLinePointView extends View {
 
     public void setNormalPointColor(int color) {
         this.mNormalPointColor = color;
+        mNormalPointPaint.setColor(mNormalPointColor);
     }
 
     public void setSelectedPointColor(int color) {
         this.mSelectedPointColor = color;
+        mSelectedPointPaint.setColor(mSelectedPointColor);
     }
 
     public void setPointToLineColor(int color) {
         this.mPointToLineColor = color;
+        mLinePaint.setColor(mPointToLineColor);
     }
 
     public void setBackgroundLineColor(int color) {
         this.mBackgroungLineColor = color;
+        mBgLinePaint.setColor(mBackgroungLineColor);
     }
 
     public void setBottomTextColor(int color) {
         this.mBottomTextColor = color;
+        mBottomTextPaint.setColor(mBottomTextColor);
     }
 
     public void setTopTextColor(int color) {
         this.mTopTextColor = color;
+        mTopTextPaint.setColor(mTopTextColor);
     }
 
     public void setAverageLineColor(int color) {
         this.mAverageLineColor = color;
+        mAverageLinePaint.setColor(mAverageLineColor);
     }
 
     public void setViewBackgroundColor(int color) {
         this.mViewBackgroundColor = color;
+        mBgPaint.setColor(mViewBackgroundColor);
     }
 
     public void setBottomValueTextColor(int color) {
         this.mBottomValueTextColor = color;
+        mBottomValuePaint.setColor(mBottomValueTextColor);
     }
 
-    public void setMaxColumn(int column) {
-        this.mMaxColumn = column;
+    public void setColumnCount(int column) {
+        this.mColumnCount = column;
     }
 
     public void setAverageValue(float value) {
